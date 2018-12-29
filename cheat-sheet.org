@@ -1,0 +1,41 @@
+API notes for easier reference
+
+* Player
+** .get_ships()
+   - List with all the ships belonging to this player
+** .get_dropoffs()
+   - List of all the drop offs
+** Other Players
+   #+BEGIN_SRC python
+     # List of players ids
+     for player in game.players:
+         pass
+   #+END_SRC
+* Ship
+** .is_full()
+** .make_dropoff()
+   - Costs 4000 halite
+** .stay_sill()
+   - Collect halite
+** .move(direction)
+* Shipyard
+** .spawn()
+* MAP
+** .calculate_distance(source, target)
+** .normalize(position)
+** .get_unsafe_moves(source, destination)
+   - Returns a list with all the unsafe moves
+** .naive_navigate(ship, destination)
+* MAP CELL
+** .is_empty() | .is_full()
+** .mark_unsafe(ship)
+   - Marks the cell under this ship as unsafe
+   - Used by naive navigation
+   - Resets every turn
+* Position
+  - Create Object by Position(x, y)
+  - entity.position
+** .get_surrounding_cardinals()
+   - Return a list
+   
+   
