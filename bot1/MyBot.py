@@ -60,10 +60,11 @@ while True:
     #   end of the turn.
     command_queue = []
 
-
+    # Cycle trhough each ship
     for ship in me.get_ships():
+        pass
 
-    # Try to control one ship first
+    # Conditions for spawning new ships
     if (me.halite_amount >= constants.SHIP_COST and # If there is enough halite for a new ship
         not game_map[me.shipyard].is_occupied and  # Shipyard not occupied
         len(me.get_ships()) < max_n_ships  # Maximum Number of ships
@@ -74,6 +75,5 @@ while True:
     # Log in elapsed_time
     elapsed_time = process_time() - t
     logging.info("Loop Elapsed Time: {}".format(elapsed_time))
-    logging.info("Command Queue:\n{}".format(command_queue))
 
     game.end_turn(command_queue)

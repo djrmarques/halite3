@@ -7,21 +7,22 @@ from hlt.positionals import Position, Direction
 # Maximum number of ships
 max_n_ships = 5
 
-htresh = 100
+# Threshold for a square to be consideres empty
+htresh = 50
 
 # Variables that saves the ship status
 ship_status = {}
 
+# List of end positions by the end of the turn 
+# To avoind colisions
+pos = []
+
 ''' Custom Functions '''
-
 # Navigation functions
-def caclulate_cost(start, end):
-    ''' Calculates the cost of navigating from one spot to the other '''
-    pass
-
 def pathfind(start, end):
     ''' 
     Returns a single direction for the ship to move
+    to reach a certain target
     '''
     dy = end.y - start.y
     dx = end.x - start.x
@@ -34,6 +35,25 @@ def pathfind(start, end):
         return Direction.South
     elif dy < 0:
         return Direction.North
+
+
+def find_1000(halite_amount, ship_position, current_targets):
+    ''' 
+    Returns a list of the nearest positions where the ship can get 
+    1000 halite, disregarding cells already assigned to other ships
+    '''
+
+    # Stores positions
+    pos_list = []
+
+
+    return pos_list
+
+
+
+def caclulate_cost(start, end):
+    ''' Calculates the cost of navigating from one spot to the other '''
+    pass
 
 # Map Info
 def eval_map(halite_amount, ship_position):
