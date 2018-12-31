@@ -1,14 +1,18 @@
 # For calculations
 import numpy as np
 from scipy.spatial.distance import cdist
-
-# Maximum number of ships
-max_n_ships = 1
-
 from hlt.positionals import Position, Direction
 
-# Custom Functions
-# Scan around the ship for the best spot
+''' Custom Variables '''
+# Maximum number of ships
+max_n_ships = 5
+
+htresh = 100
+
+# Variables that saves the ship status
+ship_status = {}
+
+''' Custom Functions '''
 
 # Navigation functions
 def caclulate_cost(start, end):

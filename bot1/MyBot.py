@@ -23,9 +23,6 @@ from aux import *
 # Import time
 from time import process_time
 
-# Variables that saves the ship status
-ship_status = {}
-
 # Custom Functions
 # These need to be here because it needs to read the game_map object
 # Create the val for every cell in the map
@@ -66,51 +63,6 @@ while True:
 
     for ship in me.get_ships():
 
-        # Assign new ships to explore
-        if ship.id not in ship_status.keys():
-            ship_status[ship.id] = "returning"
-            logging.info("New Ship Created")
-
-        # Check if return condition is met
-        if (ship.halite_amount > 500):
-            ship_status[ship.id] = "returning"
-            logging.info("Ship {} return to base with {}".format(ship.id, ship.halite_amount))
-            
-        elif (ship_status[ship.id] == "exploring" and
-              ship.halite_amount <= 500
-        ):
-            # Explore
-            # Check if it is already there
-            if ship.target == ship.position:
-                logging.info("Ship: {}, harvesting halite at target".format(ship.id))
-                command_queue.append(ship.stay_still())
-            else:
-                logging.info("Ship: {}, going to target".format(ship.id))
-                direction = pathfind(ship.position, ship.target)
-                command_queue.append(ship.move(direction))
-
-        # Return to base
-        if ship_status[ship.id] == "returning":
-            if ship.position == me.shipyard.position:
-
-                # Change ship status
-                ship_status[ship.id] = "exploring"
-
-                # Assign target to ship
-                best_pos = eval_map(halite_amount, ship.position)
-                ship.target = best_pos
-                direction = pathfind(ship.position, ship.target)
-                command_queue.append(ship.move(direction))
-
-                # Print the new ship target
-                logging.info("Ship {} targeted at {}, {}".format(ship.id, best_pos.x, best_pos.y))
-
-            else:
-                move = pathfind(ship.position, me.shipyard.position)
-                command_queue.append(ship.move(move))
-                # Print the new ship target
-                logging.info("Ship {} returning to shipyard".format(ship.id))
-
     # Try to control one ship first
     if (me.halite_amount >= constants.SHIP_COST and # If there is enough halite for a new ship
         not game_map[me.shipyard].is_occupied and  # Shipyard not occupied
@@ -122,5 +74,6 @@ while True:
     # Log in elapsed_time
     elapsed_time = process_time() - t
     logging.info("Loop Elapsed Time: {}".format(elapsed_time))
+    logging.info("Command Queue:\n{}".format(command_queue))
 
     game.end_turn(command_queue)
