@@ -61,7 +61,14 @@ class Ship(Entity):
     def __init__(self, owner, id, position, halite_amount):
         super().__init__(owner, id, position)
         self.halite_amount = halite_amount
-        self.target = position
+
+        # Target square of the ship
+        # Its a Position object
+        self.target = None
+
+        # Current Status of the ship
+        # Moving, Extracting, Returning
+        self.status = None
 
     @property
     def is_full(self):

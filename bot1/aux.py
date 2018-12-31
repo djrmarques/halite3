@@ -1,21 +1,26 @@
-# For calculations
+# For general stuff
 import numpy as np
+
+# Calculate the cityblock distance
 from scipy.spatial.distance import cdist
+
+# Positional Objects
 from hlt.positionals import Position, Direction
+
+# Debug info
+import logging
 
 ''' Custom Variables '''
 # Maximum number of ships
-max_n_ships = 5
+max_n_ships = 1
 
 # Threshold for a square to be consideres empty
 htresh = 50
 
-# Variables that saves the ship status
-ship_status = {}
-
-# List of end positions by the end of the turn 
-# To avoind colisions
-pos = []
+# Current Targets
+# Stores the current targets of all the ships
+# This will avoid colisions (hopefully)
+current_targets = []
 
 ''' Custom Functions '''
 # Navigation functions
@@ -37,36 +42,27 @@ def pathfind(start, end):
         return Direction.North
 
 
-def find_1000(halite_amount, ship_position, current_targets):
-    ''' 
-    Returns a list of the nearest positions where the ship can get 
-    1000 halite, disregarding cells already assigned to other ships
-    '''
+def next_target(ship, hal, current_targets):
+    ''' Chooses the next target for the ship. Returns a Position'''
 
-    # Stores positions
-    pos_list = []
+    # Get the cityblock distance matrix
+    d = cdist([a for a in np.ndindex(hal.shape)],
+              [[ship.position.x, ship.position.y]],
+              metric='cityblock').reshape(hal.shape)
 
+    # Value for each cell
+    val = np.divide(hal, np.square(d))
 
-    return pos_list
+    # Assigns the val of the current square as 0
+    val[ship.position.x, ship.position.y] = 0
 
-def caclulate_cost(start, end):
-    ''' Calculates the cost of navigating from one spot to the other '''
-    pass
+    # Find the maximum value cell
+    by, bx = np.where(val == val.max())
+    logging.info("\ncoords:{}\nval{}\nhal{}".format((ship.position.x, ship.position.y),
+                                                  val[by, bx],
+                                                  hal[by, bx]))
 
-# Map Info
-def eval_map(halite_amount, ship_position):
-    ''' Return Position for the best spot '''
+    # Set new ship target
+    ship.target = Position(bx[0], by[0])
 
-    # Calculate distance from ship position
-    d = cdist([a for a in np.ndindex(halite_amount.shape)],
-              [(ship_position.x, ship_position.y)],
-              metric="cityblock").reshape(halite_amount.shape)
-
-    # Calculate the value
-    val_matrix = np.divide(halite_amount, np.sqrt(d, order=4))
-    val_matrix[val_matrix == np.inf] = halite_amount[val_matrix == np.inf]
-
-    # Get the best squares
-    by, bx = np.where(val_matrix == val_matrix.max())
-
-    return Position(bx[0], by[0])
+    return  current_targets

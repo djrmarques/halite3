@@ -23,6 +23,9 @@ from aux import *
 # Import time
 from time import process_time
 
+# To calculate the mahatan distance between all the cells in the map
+from scipy.spatial.distance import cdist
+
 # Custom Functions
 # These need to be here because it needs to read the game_map object
 # Create the val for every cell in the map
@@ -34,7 +37,7 @@ game = hlt.Game()
 # At this point "game" variable is populated with initial map data.
 # This is a good place to do computationally expensive start-up pre-processing.
 # As soon as you call "ready" function below, the 2 second per turn timer will start.
-game.ready("Cancer")
+game.ready("Main Bot")
 
 # Now that your bot is initialized, save a message to yourself in the log file with some important information.
 #   Here, you log here your id, which you can always fetch from the game object by using my_id.
@@ -54,7 +57,10 @@ while True:
     game_map = game.game_map
 
     # NDarray with the amount of halite in each cell
+    # All the value bellow the treshold are assigned the halite value of 0 so that
+    # that cell value is also 0
     halite_amount = np.array([[c.halite_amount for c in row] for row in game.game_map._cells])
+    halite_amount[halite_amount < htresh] = 0
 
     # A command queue holds all the commands you will run this turn. You build this list up and submit it at the
     #   end of the turn.
@@ -62,7 +68,93 @@ while True:
 
     # Cycle trhough each ship
     for ship in me.get_ships():
-        pass
+
+        # If the ship was just created
+        if not ship.status:
+
+            # Assign target to ship
+            current_targets = next_target(ship, halite_amount, current_targets)
+
+            # Get the direction to the target
+            td = pathfind(ship.position, ship.target)
+
+            # Move in that direction
+            command_queue.append(ship.move(td))
+
+            # Change ship status to moving
+            ship.status = "moving"
+
+            logging.info("Ship {} assigned to {}.".format(ship.id, (ship.target.x, ship.target.y)))
+        
+        # If ship is moving
+        elif ship.status == "moving":
+
+            # Check if ship is already in target
+            if (ship.position == ship.target):
+                # Ship on target, start mining
+
+                # Move in that direction
+                command_queue.append(ship.stay_still())
+
+                # Change ship status to extracting
+                ship.status == "extracting"
+
+            # If it's not already in the position, go there
+            else:
+                # Get the direction to the target
+                td = pathfind(ship.position, ship.target)
+
+                # Move in that direction
+                command_queue.append(ship.move(td))
+
+        # If ship is extracting at the target
+        # The second condition is unnecessary
+        elif (ship.status == "extracting" and
+              ship.position == ship.target
+        ):
+
+            # If the spot halite amount is under the treshold or
+            # the ship is not full, find new target
+            if (game_map[ship.position].halite_amount < htresh and
+                not ship.is_full
+            ):
+                # Get new target
+                # Assign new target to ship
+                current_targets = next_target(ship, halite_amount, current_targets)
+
+                # Get the direction to the target
+                td = pathfind(ship.position, ship.target)
+
+                # Move in that direction
+                command_queue.append(ship.move(td))
+
+                # Change ship status to moving
+                ship.status = "moving"
+
+            # If the ship is full, return to base
+            elif (ship.is_full):
+                # Change ship status to returning
+                ship.status = "returning"
+
+                # Change target
+                ship.target = me.shipyard.position
+
+            elif (game_map[ship.position].halite_amount >= htresh):
+                # Continue mining
+                command_queue.append(ship.stay_still())
+
+            else:
+                raise Exception("Unknown condition in with ship {}".format(ship.id))
+
+            # If the ship is returning
+            if ship.status == "returning":
+
+                # Get the direction to the shipyward
+                td = pathfind(ship.position, ship.target)
+
+                # Move in to shipyard
+                command_queue.append(ship.move(td))
+
 
     # Conditions for spawning new ships
     if (me.halite_amount >= constants.SHIP_COST and # If there is enough halite for a new ship
