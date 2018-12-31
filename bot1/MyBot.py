@@ -49,6 +49,11 @@ while True:
     # Starts timer
     t = process_time()
 
+    # Next positions
+    # This will store the next bot positions and will be used by pathfind 
+    # To select the next route and avoid crashes with my own ships
+    next_pos = []
+
     # This loop handles each turn of the game. The game object changes every turn, and you refresh that state by
     #   running update_frame().
     game.update_frame()
@@ -76,7 +81,7 @@ while True:
             current_targets = next_target(ship, halite_amount, current_targets)
 
             # Get the direction to the target
-            td = pathfind(ship.position, ship.target)
+            td, next_pos = pathfind(ship.position, ship.target, next_pos)
 
             # Move in that direction
             command_queue.append(ship.move(td))
@@ -97,12 +102,13 @@ while True:
                 command_queue.append(ship.stay_still())
 
                 # Change ship status to extracting
-                ship.status == "extracting"
+                ship.status = "extracting"
+                logging.info("Ship {} reached extraction point at {}.".format(ship.id, (ship.target.x, ship.target.y)))
 
             # If it's not already in the position, go there
             else:
                 # Get the direction to the target
-                td = pathfind(ship.position, ship.target)
+                td, next_pos = pathfind(ship.position, ship.target, next_pos)
 
                 # Move in that direction
                 command_queue.append(ship.move(td))
@@ -123,7 +129,7 @@ while True:
                 current_targets = next_target(ship, halite_amount, current_targets)
 
                 # Get the direction to the target
-                td = pathfind(ship.position, ship.target)
+                td, next_post = pathfind(ship.position, ship.target, next_pos)
 
                 # Move in that direction
                 command_queue.append(ship.move(td))
@@ -138,6 +144,7 @@ while True:
 
                 # Change target
                 ship.target = me.shipyard.position
+                logging.info("Ship {} returning to base.".format(ship.id))
 
             elif (game_map[ship.position].halite_amount >= htresh):
                 # Continue mining
@@ -146,14 +153,33 @@ while True:
             else:
                 raise Exception("Unknown condition in with ship {}".format(ship.id))
 
-            # If the ship is returning
-            if ship.status == "returning":
+        # If the ship is returning
+        if (ship.status == "returning"):
 
+            # If the ship is not yet in the shipyard
+            if ship.position != ship.target:
                 # Get the direction to the shipyward
-                td = pathfind(ship.position, ship.target)
+                td, next_pos = pathfind(ship.position, ship.target, next_pos)
 
                 # Move in to shipyard
                 command_queue.append(ship.move(td))
+
+            # If ship already in the shipyard
+            elif ship.position == ship.target:
+
+                # Assign target to ship
+                current_targets = next_target(ship, halite_amount, current_targets)
+
+                # Get the direction to the target
+                td, next_pos = pathfind(ship.position, ship.target, next_pos)
+
+                # Move in that direction
+                command_queue.append(ship.move(td))
+
+                # Change ship status to moving
+                ship.status = "moving"
+
+                logging.info("Ship {} assigned to {}.".format(ship.id, (ship.target.x, ship.target.y)))
 
 
     # Conditions for spawning new ships
