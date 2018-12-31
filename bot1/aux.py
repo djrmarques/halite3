@@ -49,8 +49,6 @@ def find_1000(halite_amount, ship_position, current_targets):
 
     return pos_list
 
-
-
 def caclulate_cost(start, end):
     ''' Calculates the cost of navigating from one spot to the other '''
     pass
