@@ -31,14 +31,18 @@ h = lambda end, start: 500*sqrt(abs(start[0] - end[0])**2 + abs(start[1] - end[1
 # val = lambda start, target, m: m[start] + h(target, start)
 
 def val(start, target, m):
-    logging.info("s: {} with {} + {} = {}".format(start, m[start], h(target, start), m[start] + h(target, start)))
+    # logging.info("s: {} with {} + {} = {}".format(start, m[start], h(target, start), m[start] + h(target, start)))
     return m[start] + h(target, start)
 
-def pathfind(start: Position, target: Position, m, unpassable: list):
+def pathfind(ship, target: Position, m, unpassable: list):
     ''' 
     Determines the best route to target using astar.
     Start and target are Position objects
     '''
+
+
+    # Get the ship object
+    start = ship.position
 
     # Start position coord tupple
     sx, sy = start.x, start.y
@@ -46,6 +50,8 @@ def pathfind(start: Position, target: Position, m, unpassable: list):
     # Target position coord tupple
     tx, ty = target.x, target.y
 
+    logging.info("Moving Ship {} at {} to target {}".format(ship.id, (sx, sy), (tx, ty)))
+    logging.info("  Unpasable: {}".format(unpassable))
 
     # Get adjacent squares (list with Position objects)
     adj = start.get_surrounding_cardinals()
@@ -53,9 +59,14 @@ def pathfind(start: Position, target: Position, m, unpassable: list):
     # Remove adjacent squares that are impassable
     adj = [a for a in adj if a not in unpassable]
 
+    # See if ship can get out of the square
+    # If not, return the same position
     # If no squares are available, stay still
     # And add current position to the unpassable list
-    if not adj:
+    if (ship.halite_amount < 0.1 * m[sy, sx] or
+        not adj
+
+    ):
         unpassable.append(start)
         return 'o', unpassable
 
@@ -67,9 +78,9 @@ def pathfind(start: Position, target: Position, m, unpassable: list):
     adj = sorted(adj, key=lambda c: val(c, (ty, tx), m))[0]
     # Get the best direction
     d_tuple = (adj[1]-sx, adj[0]-sy)
-    logging.info("{}".format(d_tuple))
+    # logging.info("{}".format(d_tuple))
 
-    # Need to normalize the tuple in case of something line (0, -31)
+    # need to normalize the tuple in case of something line (0, -31)
     # Probably not the most efficient way of doing this
     if max([abs(a) for a in d_tuple]) == 31:
         d_tuple = tuple([int(a/31) for a in d_tuple])

@@ -64,8 +64,16 @@ while True:
     #   end of the turn.
     command_queue = []
 
+    # Organize ship is such as the thips that a currenyly extracting are first
+    # This will help prevent crashes 
+    order_ships = lambda ship: 0 if ship.status=="extracting" else 1
+    ships = sorted(me.get_ships(), key=order_ships)
+
+    # Loggins info ships order
+    logging.info("{}".format([(ship.id, ship.status) for ship in ships]))
+
     # Cycle trhough each ship
-    for ship in me.get_ships():
+    for ship in ships:
 
         # If the ship was just created
         if not ship.status:
@@ -74,7 +82,7 @@ while True:
             current_targets = next_target(ship, halite_amount, current_targets)
 
             # Get the direction to the target
-            td, unpassable = pathfind(ship.position, ship.target, halite_amount, unpassable)
+            td, unpassable = pathfind(ship, ship.target, halite_amount, unpassable)
 
             # Move in that direction
             command_queue.append(ship.move(td))
@@ -104,7 +112,7 @@ while True:
             # If it's not already in the position, go there
             else:
                 # Get the direction to the target
-                td, unpassable = pathfind(ship.position, ship.target, halite_amount, unpassable)
+                td, unpassable = pathfind(ship, ship.target, halite_amount, unpassable)
 
                 # Move in that direction
                 command_queue.append(ship.move(td))
@@ -125,7 +133,7 @@ while True:
                 current_targets = next_target(ship, halite_amount, current_targets)
 
                 # Get the direction to the target
-                td, unpassablet = pathfind(ship.position, ship.target, halite_amount, unpassable)
+                td, unpassablet = pathfind(ship, ship.target, halite_amount, unpassable)
 
                 # Move in that direction
                 command_queue.append(ship.move(td))
@@ -160,7 +168,7 @@ while True:
             # If the ship is not yet in the shipyard
             if ship.position != ship.target:
                 # Get the direction to the shipyward
-                td, unpassable = pathfind(ship.position, ship.target, halite_amount, unpassable)
+                td, unpassable = pathfind(ship, ship.target, halite_amount, unpassable)
 
                 # Move in to shipyard
                 command_queue.append(ship.move(td))
@@ -172,7 +180,7 @@ while True:
                 current_targets = next_target(ship, halite_amount, current_targets)
 
                 # Get the direction to the target
-                td, unpassable = pathfind(ship.position, ship.target, halite_amount, unpassable)
+                td, unpassable = pathfind(ship, ship.target, halite_amount, unpassable)
 
                 # Move in that direction
                 command_queue.append(ship.move(td))
