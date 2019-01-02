@@ -10,56 +10,76 @@ from hlt.positionals import Position, Direction
 # Debug info
 import logging
 
+# For the heuristic
+from math import sqrt
 
-''' custom variables '''
+
+''' Custom Variables '''
 # Maximum number of ships
-max_n_ships = 2
+max_n_ships = 3
 
 # Threshold for a square to be consideres empty
 htresh = 40
 
-# Current Targets
-# Stores the current targets of all the ships
-# This will avoid colisions (hopefully)
+# Stores the selected targets
 current_targets = []
 
-''' custom functions '''
-# Navigation functions
-def pathfind(start, end, next_pos):
+''' Custom Functions '''
+# Lambda functions for value
+# Heuristc
+h = lambda end, start: 500*sqrt(abs(start[0] - end[0])**2 + abs(start[1] - end[1])**2)
+# val = lambda start, target, m: m[start] + h(target, start)
+
+def val(start, target, m):
+    logging.info("s: {} with {} + {} = {}".format(start, m[start], h(target, start), m[start] + h(target, start)))
+    return m[start] + h(target, start)
+
+def pathfind(start: Position, target: Position, m, unpassable: list):
     ''' 
-    OLD
-    Returns a single direction for the ship to move
-    to reach a certain target.
-    Next pos stores locations of other ships
+    Determines the best route to target using astar.
+    Start and target are Position objects
     '''
 
-    # Stores the possible directions
-    possible_directions = []
+    # Start position coord tupple
+    sx, sy = start.x, start.y
 
-    # Calculate difference in coordinates
-    dy = end.y - start.y
-    dx = end.x - start.x
+    # Target position coord tupple
+    tx, ty = target.x, target.y
 
-    # Determine the possible positions
-    if dx < 0:
-        possible_directions.append(Direction.West)
-    if dx > 0:
-        possible_directions.append(Direction.East)
-    if dy > 0:
-        possible_directions.append(Direction.South)
-    if dy < 0:
-        possible_directions.append(Direction.North)
 
-    # position.directional_offset(direction)
-    # Checks if the possible directions are already taken by anothers ships
-    for d in possible_directions:
-        if (start.directional_offset(d) not in next_pos):
-            next_pos.append(start.directional_offset(d))
-            return d, next_pos
+    # Get adjacent squares (list with Position objects)
+    adj = start.get_surrounding_cardinals()
+    
+    # Remove adjacent squares that are impassable
+    adj = [a for a in adj if a not in unpassable]
 
-    # If no directoin available, stay still
-    next_pos.append(start)
-    return 'o', next_pos
+    # If no squares are available, stay still
+    # And add current position to the unpassable list
+    if not adj:
+        unpassable.append(start)
+        return 'o', unpassable
+
+    # Sort Positions by value
+    # Get position as tupple
+    adj = [(pos.y, pos.x) for pos in adj]
+
+    # DEBUG DELETE THIS
+    adj = sorted(adj, key=lambda c: val(c, (ty, tx), m))[0]
+    # Get the best direction
+    d_tuple = (adj[1]-sx, adj[0]-sy)
+    logging.info("{}".format(d_tuple))
+
+    # Need to normalize the tuple in case of something line (0, -31)
+    # Probably not the most efficient way of doing this
+    if max([abs(a) for a in d_tuple]) == 31:
+        d_tuple = tuple([int(a/31) for a in d_tuple])
+
+    direction = Direction.convert(d_tuple)
+
+    # Append new position to unpassable
+    unpassable.append(start.directional_offset(d_tuple))
+
+    return direction, unpassable
 
 def next_target(ship, hal, current_targets):
     ''' Chooses the next target for the ship. Returns a Position'''

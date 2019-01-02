@@ -23,13 +23,6 @@ from aux import *
 # Import time
 from time import process_time
 
-# To calculate the mahatan distance between all the cells in the map
-from scipy.spatial.distance import cdist
-
-# Custom Functions
-# These need to be here because it needs to read the game_map object
-# Create the val for every cell in the map
-
 """ <<<Game Begin>>> """
 
 # This game object contains the initial game state.
@@ -52,7 +45,7 @@ while True:
     # Next positions
     # This will store the next bot positions and will be used by pathfind 
     # To select the next route and avoid crashes with my own ships
-    next_pos = []
+    unpassable = []
 
     # This loop handles each turn of the game. The game object changes every turn, and you refresh that state by
     #   running update_frame().
@@ -81,7 +74,7 @@ while True:
             current_targets = next_target(ship, halite_amount, current_targets)
 
             # Get the direction to the target
-            td, next_pos = pathfind(ship.position, ship.target, next_pos)
+            td, unpassable = pathfind(ship.position, ship.target, halite_amount, unpassable)
 
             # Move in that direction
             command_queue.append(ship.move(td))
@@ -106,12 +99,12 @@ while True:
                 logging.info("Ship {} reached extraction point at {}.".format(ship.id, (ship.target.x, ship.target.y)))
 
                 # Append ship to this position
-                next_pos.append(ship.position)
+                unpassable.append(ship.position)
 
             # If it's not already in the position, go there
             else:
                 # Get the direction to the target
-                td, next_pos = pathfind(ship.position, ship.target, next_pos)
+                td, unpassable = pathfind(ship.position, ship.target, halite_amount, unpassable)
 
                 # Move in that direction
                 command_queue.append(ship.move(td))
@@ -132,13 +125,15 @@ while True:
                 current_targets = next_target(ship, halite_amount, current_targets)
 
                 # Get the direction to the target
-                td, next_post = pathfind(ship.position, ship.target, next_pos)
+                td, unpassablet = pathfind(ship.position, ship.target, halite_amount, unpassable)
 
                 # Move in that direction
                 command_queue.append(ship.move(td))
 
                 # Change ship status to moving
                 ship.status = "moving"
+                
+                logging.info("Ship {} assigned to {}.".format(ship.id, (ship.target.x, ship.target.y)))
 
             # If the ship is full, return to base
             elif (ship.is_full):
@@ -154,7 +149,7 @@ while True:
                 command_queue.append(ship.stay_still())
 
                 # Append ship to this position
-                next_pos.append(ship.position)
+                unpassable.append(ship.position)
 
             else:
                 raise Exception("Unknown condition in with ship {}".format(ship.id))
@@ -165,7 +160,7 @@ while True:
             # If the ship is not yet in the shipyard
             if ship.position != ship.target:
                 # Get the direction to the shipyward
-                td, next_pos = pathfind(ship.position, ship.target, next_pos)
+                td, unpassable = pathfind(ship.position, ship.target, halite_amount, unpassable)
 
                 # Move in to shipyard
                 command_queue.append(ship.move(td))
@@ -177,7 +172,7 @@ while True:
                 current_targets = next_target(ship, halite_amount, current_targets)
 
                 # Get the direction to the target
-                td, next_pos = pathfind(ship.position, ship.target, next_pos)
+                td, unpassable = pathfind(ship.position, ship.target, halite_amount, unpassable)
 
                 # Move in that direction
                 command_queue.append(ship.move(td))
@@ -198,7 +193,7 @@ while True:
 
     # Log in elapsed_time
     elapsed_time = process_time() - t
-    logging.info("Positions ocupied in the next turn:\n{}".format([(pos.x, pos.y) for pos in next_pos]))
+    logging.info("Positions ocupied in the next turn:\n{}".format([(pos.x, pos.y) for pos in unpassable]))
     logging.info("Loop Elapsed Time: {}".format(elapsed_time))
 
     game.end_turn(command_queue)
