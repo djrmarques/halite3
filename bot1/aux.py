@@ -27,6 +27,7 @@ current_targets = []
 # Navigation functions
 def pathfind(start, end, next_pos):
     ''' 
+    OLD
     Returns a single direction for the ship to move
     to reach a certain target.
     Next pos stores locations of other ships
@@ -59,8 +60,6 @@ def pathfind(start, end, next_pos):
     # If no directoin available, stay still
     next_pos.append(start)
     return 'o', next_pos
-
-    # Needs to return also the next pos
 
 def next_target(ship, hal, current_targets):
     ''' Chooses the next target for the ship. Returns a Position'''

@@ -105,6 +105,9 @@ while True:
                 ship.status = "extracting"
                 logging.info("Ship {} reached extraction point at {}.".format(ship.id, (ship.target.x, ship.target.y)))
 
+                # Append ship to this position
+                next_pos.append(ship.position)
+
             # If it's not already in the position, go there
             else:
                 # Get the direction to the target
@@ -150,6 +153,9 @@ while True:
                 # Continue mining
                 command_queue.append(ship.stay_still())
 
+                # Append ship to this position
+                next_pos.append(ship.position)
+
             else:
                 raise Exception("Unknown condition in with ship {}".format(ship.id))
 
@@ -192,6 +198,7 @@ while True:
 
     # Log in elapsed_time
     elapsed_time = process_time() - t
+    logging.info("Positions ocupied in the next turn:\n{}".format([(pos.x, pos.y) for pos in next_pos]))
     logging.info("Loop Elapsed Time: {}".format(elapsed_time))
 
     game.end_turn(command_queue)
