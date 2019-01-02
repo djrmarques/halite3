@@ -39,13 +39,14 @@ logging.info("Successfully created bot! My Player ID is {}.".format(game.my_id))
 """ <<<Game Loop>>> """
 
 while True:
+
     # Starts timer
     t = process_time()
 
     # Next positions
     # This will store the next bot positions and will be used by pathfind 
     # To select the next route and avoid crashes with my own ships
-    unpassable = []
+    unpassable = {}
 
     # This loop handles each turn of the game. The game object changes every turn, and you refresh that state by
     #   running update_frame().
@@ -72,7 +73,14 @@ while True:
     # Loggins info ships order
     logging.info("{}".format([(ship.id, ship.status) for ship in ships]))
 
-    # Cycle trhough each ship
+    # Conditions for spawning new ships
+    if (me.halite_amount >= constants.SHIP_COST and # If there is enough halite for a new ship
+        not game_map[me.shipyard].is_occupied and  # Shipyard not occupied
+        len(me.get_ships()) < max_n_ships  # Maximum Number of ships
+    ):
+
+        command_queue.append(me.shipyard.spawn())
+
     for ship in ships:
 
         # If the ship was just created
@@ -107,7 +115,7 @@ while True:
                 logging.info("Ship {} reached extraction point at {}.".format(ship.id, (ship.target.x, ship.target.y)))
 
                 # Append ship to this position
-                unpassable.append(ship.position)
+                unpassable[ship.id]=ship.position
 
             # If it's not already in the position, go there
             else:
@@ -153,11 +161,18 @@ while True:
                 logging.info("Ship {} returning to base.".format(ship.id))
 
             elif (game_map[ship.position].halite_amount >= htresh):
+
+                # Check if it will leave in the next turn
+                if (0.75 * game_map[ship.position].halite_amount < htresh):
+                    # Change ship status to moving
+                    ship.status = "moving"
+
+
                 # Continue mining
                 command_queue.append(ship.stay_still())
 
                 # Append ship to this position
-                unpassable.append(ship.position)
+                unpassable[ship.id]=(ship.position)
 
             else:
                 raise Exception("Unknown condition in with ship {}".format(ship.id))
@@ -190,18 +205,9 @@ while True:
 
                 logging.info("Ship {} assigned to {}.".format(ship.id, (ship.target.x, ship.target.y)))
 
-
-    # Conditions for spawning new ships
-    if (me.halite_amount >= constants.SHIP_COST and # If there is enough halite for a new ship
-        not game_map[me.shipyard].is_occupied and  # Shipyard not occupied
-        len(me.get_ships()) < max_n_ships  # Maximum Number of ships
-    ):
-
-        command_queue.append(me.shipyard.spawn())
-
     # Log in elapsed_time
     elapsed_time = process_time() - t
-    logging.info("Positions ocupied in the next turn:\n{}".format([(pos.x, pos.y) for pos in unpassable]))
+    logging.info("Positions ocupied in the next turn:\n{}".format(["{}:{},{}".format(id, pos.x, pos.y) for id, pos in unpassable.items()]))
     logging.info("Loop Elapsed Time: {}".format(elapsed_time))
 
     game.end_turn(command_queue)

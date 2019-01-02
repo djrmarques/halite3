@@ -16,7 +16,7 @@ from math import sqrt
 
 ''' Custom Variables '''
 # Maximum number of ships
-max_n_ships = 3
+max_n_ships = 5
 
 # Threshold for a square to be consideres empty
 htresh = 40
@@ -40,7 +40,6 @@ def pathfind(ship, target: Position, m, unpassable: list):
     Start and target are Position objects
     '''
 
-
     # Get the ship object
     start = ship.position
 
@@ -51,23 +50,22 @@ def pathfind(ship, target: Position, m, unpassable: list):
     tx, ty = target.x, target.y
 
     logging.info("Moving Ship {} at {} to target {}".format(ship.id, (sx, sy), (tx, ty)))
-    logging.info("  Unpasable: {}".format(unpassable))
 
     # Get adjacent squares (list with Position objects)
     adj = start.get_surrounding_cardinals()
     
     # Remove adjacent squares that are impassable
-    adj = [a for a in adj if a not in unpassable]
+    adj = [a for a in adj if a not in unpassable.values()]
 
     # See if ship can get out of the square
     # If not, return the same position
     # If no squares are available, stay still
     # And add current position to the unpassable list
-    if (ship.halite_amount < 0.1 * m[sy, sx] or
+    logging.info("Ship {} needs {} to move and has {}".format(ship.id, 0.1*m[sy, sx], ship.halite_amount))
+    if (ship.halite_amount < round(0.1 * m[sy, sx]) or
         not adj
-
     ):
-        unpassable.append(start)
+        unpassable[ship.id]=start
         return 'o', unpassable
 
     # Sort Positions by value
@@ -88,7 +86,7 @@ def pathfind(ship, target: Position, m, unpassable: list):
     direction = Direction.convert(d_tuple)
 
     # Append new position to unpassable
-    unpassable.append(start.directional_offset(d_tuple))
+    unpassable[ship.id] = (start.directional_offset(d_tuple))
 
     return direction, unpassable
 
