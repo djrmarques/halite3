@@ -49,14 +49,14 @@ def pathfind(ship, target: Position, m, unpassable: list):
     adj = start.get_surrounding_cardinals()
     
     # Remove adjacent squares that are unpassable (occupied)
-    logging.info("Ship {}: Unpassable {}".format(ship.id, unpassable))
+    # logging.info("Ship {}: Unpassable {}".format(ship.id, unpassable))
     adj = [a for a in adj if a not in unpassable.values()]
 
     # See if ship can get out of the square
     # If not, return the same position
     # If no squares are available, stay still
     # And add current position to the unpassable list
-    if (ship.halite_amount < trunc(0.1*m[sy, sx]) or
+    if (ship.halite_amount < round(0.1*m[sy, sx]) or
         not adj
     ):
         logging.info("Ship {} on square {} with hal: {} needs {} to move and has {}".format(ship.id, (sx, sy), m[sy, sx], 0.1*m[sy, sx], ship.halite_amount))
@@ -122,3 +122,23 @@ def next_target(ship, hal, current_targets):
     current_targets.append(Position(bx[0], by[0]))
 
     return  current_targets
+
+
+
+# Ship move order functions
+# Returns the mathantan distance of two positions
+d = lambda posx, posy: abs(posx.x - posy.x) + abs(posx.y - posy.y)
+def order_ships(ship, game_map):
+    if ship.status == "extracting":
+        return 0
+    elif not ship.status:
+        return 10
+    elif (ship.status == "moving"  or ship.status == "returning") :
+        # Organize by distance to target
+        # This will ensure that ships will not ocupy the targets of other ships as they move there
+
+        # First, the ships that cannot move
+        if ship.halite_amount < round(0.1 * game_map[ship.position].halite_amount):
+            return 2
+        else:
+            return 3 + d(ship.position, ship.target)

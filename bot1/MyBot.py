@@ -65,14 +65,8 @@ while True:
 
     # Organize ship is such as the thips that a currenyly extracting are first
     # This will help prevent crashes 
-    def order_ships(ship):
-        if ship.status=="extracting":
-            return 1
-        elif not ship.status:
-            return 0
-        else:
-            return 2
-    ships = sorted(me.get_ships(), key=order_ships)
+    
+    ships = sorted(me.get_ships(), key= lambda ship: order_ships(ship, game_map))
 
     # Loggins info ships order
     logging.info("{}".format([(ship.id, ship.status) for ship in ships]))
