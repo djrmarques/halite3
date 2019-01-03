@@ -1,50 +1,123 @@
-# For calculations
+# For general stuff
 import numpy as np
+
+# Calculate the cityblock distance
 from scipy.spatial.distance import cdist
 
+# Positional Objects
+from hlt.positionals import Position, Direction
+
+# Debug info
+import logging
+
+# For the heuristic
+from math import sqrt, trunc
+
+''' Custom Variables '''
 # Maximum number of ships
 max_n_ships = 1
 
-from hlt.positionals import Position, Direction
+# Threshold for a square to be consideres empty
+htresh = 40
 
-# Custom Functions
-# Scan around the ship for the best spot
+# Stores the selected targets
+current_targets = []
 
-# Navigation functions
-def caclulate_cost(start, end):
-    ''' Calculates the cost of navigating from one spot to the other '''
-    pass
+''' Custom Functions '''
+# Lambda functions for value
+# Heuristc
+h = lambda end, start: 500*sqrt(abs(start[0] - end[0])**2 + abs(start[1] - end[1])**2)
+# val = lambda start, target, m: m[start] + h(target, start)
+def val(start, target, m): return m[start] + h(target, start)
 
-def pathfind(start, end):
+def pathfind(ship, target: Position, m, unpassable: list):
     ''' 
-    Returns a single direction for the ship to move
+    Determines the best route to target using astar.
+    Start and target are Position objects
     '''
-    dy = end.y - start.y
-    dx = end.x - start.x
 
-    if dx < 0:
-        return Direction.West
-    elif dx > 0:
-        return Direction.East
-    elif dy > 0:
-        return Direction.South
-    elif dy < 0:
-        return Direction.North
+    # Get the ship object
+    start = ship.position
 
-# Map Info
-def eval_map(halite_amount, ship_position):
-    ''' Return Position for the best spot '''
+    # Start position coord tupple
+    sx, sy = start.x, start.y
 
-    # Calculate distance from ship position
-    d = cdist([a for a in np.ndindex(halite_amount.shape)],
-              [(ship_position.x, ship_position.y)],
-              metric="cityblock").reshape(halite_amount.shape)
+    # Target position coord tupple
+    tx, ty = target.x, target.y
 
-    # Calculate the value
-    val_matrix = np.divide(halite_amount, np.sqrt(d, order=4))
-    val_matrix[val_matrix == np.inf] = halite_amount[val_matrix == np.inf]
+    # Get adjacent squares (list with Position objects)
+    adj = start.get_surrounding_cardinals()
+    
+    # Remove adjacent squares that are unpassable (occupied)
+    adj = [a for a in adj if a not in unpassable.values()]
 
-    # Get the best squares
-    by, bx = np.where(val_matrix == val_matrix.max())
+    # See if ship can get out of the square
+    # If not, return the same position
+    # If no squares are available, stay still
+    # And add current position to the unpassable list
+    if (ship.halite_amount < trunc(0.1*m[sy, sx]) or
+        not adj
+    ):
+        logging.info("Ship {} on square {} with hal: {} needs {} to move and has {}".format(ship.id, (sx, sy), m[sy, sx], 0.1*m[sy, sx], ship.halite_amount))
+        unpassable[ship.id]=start
+        return 'o', unpassable
 
-    return Position(bx[0], by[0])
+    # All the tiles with hal < htresh have value 0
+    m[m < htresh] = 0
+
+    # Sort Positions by value
+    # Get position as tupple
+    adj = [(pos.y, pos.x) for pos in adj]
+
+    # DEBUG DELETE THIS
+    adj = sorted(adj, key=lambda c: val(c, (ty, tx), m))[0]
+    # Get the best direction
+    d_tuple = (adj[1]-sx, adj[0]-sy)
+    # logging.info("{}".format(d_tuple))
+
+    # need to normalize the tuple in case of something line (0, -31)
+    # Probably not the most efficient way of doing this
+    if max([abs(a) for a in d_tuple]) == 31:
+        d_tuple = tuple([int(a/31) for a in d_tuple])
+
+    direction = Direction.convert(d_tuple)
+
+    # Append new position to unpassable
+    unpassable[ship.id] = (start.directional_offset(d_tuple))
+
+    return direction, unpassable
+
+def next_target(ship, hal, current_targets):
+    ''' Chooses the next target for the ship. Returns a Position'''
+
+
+    # All the tiles with hal < htresh have value 0
+    hal[hal < htresh] = 0
+
+    # Get the cityblock distance matrix
+    d = cdist([a for a in np.ndindex(hal.shape)],
+              [[ship.position.y, ship.position.x]],
+              metric='cityblock').reshape(hal.shape)
+
+    # Value for each cell
+    val = np.divide(hal, np.square(d))
+
+    # Target positions. the current targets contains Position objects
+    # If the list is not empty
+    if current_targets:
+        for pos in current_targets:
+            val[pos.y, pos.x] = 0
+
+    # Assigns the val of the current square as 0
+    val[ship.position.y, ship.position.x] = 0
+
+    # Find the maximum value cell
+    by, bx = np.where(val == val.max())
+
+    # Set new ship target
+    ship.target = Position(bx[0], by[0])
+
+    # Apend to current targets
+    current_targets.append(Position(bx[0], by[0]))
+
+    return  current_targets

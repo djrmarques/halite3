@@ -11,12 +11,11 @@ from hlt.positionals import Position, Direction
 import logging
 
 # For the heuristic
-from math import sqrt
-
+from math import sqrt, trunc
 
 ''' Custom Variables '''
 # Maximum number of ships
-max_n_ships = 5
+max_n_ships = 10
 
 # Threshold for a square to be consideres empty
 htresh = 40
@@ -29,10 +28,7 @@ current_targets = []
 # Heuristc
 h = lambda end, start: 500*sqrt(abs(start[0] - end[0])**2 + abs(start[1] - end[1])**2)
 # val = lambda start, target, m: m[start] + h(target, start)
-
-def val(start, target, m):
-    # logging.info("s: {} with {} + {} = {}".format(start, m[start], h(target, start), m[start] + h(target, start)))
-    return m[start] + h(target, start)
+def val(start, target, m): return m[start] + h(target, start)
 
 def pathfind(ship, target: Position, m, unpassable: list):
     ''' 
@@ -49,24 +45,26 @@ def pathfind(ship, target: Position, m, unpassable: list):
     # Target position coord tupple
     tx, ty = target.x, target.y
 
-    logging.info("Moving Ship {} at {} to target {}".format(ship.id, (sx, sy), (tx, ty)))
-
     # Get adjacent squares (list with Position objects)
     adj = start.get_surrounding_cardinals()
     
-    # Remove adjacent squares that are impassable
+    # Remove adjacent squares that are unpassable (occupied)
+    logging.info("Ship {}: Unpassable {}".format(ship.id, unpassable))
     adj = [a for a in adj if a not in unpassable.values()]
 
     # See if ship can get out of the square
     # If not, return the same position
     # If no squares are available, stay still
     # And add current position to the unpassable list
-    logging.info("Ship {} needs {} to move and has {}".format(ship.id, 0.1*m[sy, sx], ship.halite_amount))
-    if (ship.halite_amount < round(0.1 * m[sy, sx]) or
+    if (ship.halite_amount < trunc(0.1*m[sy, sx]) or
         not adj
     ):
+        logging.info("Ship {} on square {} with hal: {} needs {} to move and has {}".format(ship.id, (sx, sy), m[sy, sx], 0.1*m[sy, sx], ship.halite_amount))
         unpassable[ship.id]=start
         return 'o', unpassable
+
+    # All the tiles with hal < htresh have value 0
+    m[m < htresh] = 0
 
     # Sort Positions by value
     # Get position as tupple
@@ -92,6 +90,10 @@ def pathfind(ship, target: Position, m, unpassable: list):
 
 def next_target(ship, hal, current_targets):
     ''' Chooses the next target for the ship. Returns a Position'''
+
+
+    # All the tiles with hal < htresh have value 0
+    hal[hal < htresh] = 0
 
     # Get the cityblock distance matrix
     d = cdist([a for a in np.ndindex(hal.shape)],
