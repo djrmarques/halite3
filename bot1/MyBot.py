@@ -214,6 +214,6 @@ while True:
 
     # Log in elapsed_time
     elapsed_time = process_time() - t
-    # logging.info("Loop Elapsed Time: {}".format(elapsed_time))
+    logging.info("Loop Elapsed Time: {}".format(elapsed_time))
 
     game.end_turn(command_queue)

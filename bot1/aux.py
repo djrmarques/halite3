@@ -124,7 +124,6 @@ def next_target(ship, hal, current_targets):
     return  current_targets
 
 
-
 # Ship move order functions
 # Returns the mathantan distance of two positions
 d = lambda posx, posy: abs(posx.x - posy.x) + abs(posx.y - posy.y)
