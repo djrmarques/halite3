@@ -65,14 +65,8 @@ while True:
 
     # Organize ship is such as the thips that a currenyly extracting are first
     # This will help prevent crashes 
-    def order_ships(ship):
-        if ship.status=="extracting":
-            return 1
-        elif not ship.status:
-            return 0
-        else:
-            return 2
-    ships = sorted(me.get_ships(), key=order_ships)
+    
+    ships = sorted(me.get_ships(), key= lambda ship: order_ships(ship, game_map))
 
     # Loggins info ships order
     logging.info("{}".format([(ship.id, ship.status) for ship in ships]))
@@ -204,17 +198,22 @@ while True:
     # Conditions for spawning new ships
     if (me.halite_amount >= constants.SHIP_COST and # If there is enough halite for a new ship
         len(me.get_ships()) < max_n_ships and  # Maximum Number of ships
+        not game_map[me.shipyard].is_occupied and  # Shipyard not occupied
         me.shipyard.position not in [pos for pos in unpassable.values()]  # Shipyard not occupied
     ):
 
         command_queue.append(me.shipyard.spawn())
 
+    # Log Ship Targets
+    logging.info("Ship Targets:\n{}".format(
+        ["{}:{}".format(ship.id, ship.target) for ship in me.get_ships()]))
+
+    # Log Ship Positions at the end of the turn
+    logging.info("Positions ocupied in the next turn:\n{}".format(
+        ["{}:{}".format(id, pos) for id, pos in unpassable.items()]))
 
     # Log in elapsed_time
-    logging.info("Ship Targets:\n{}".format(["{}-({},{})".format(ship.id, ship.position.x, ship.position.y) for ship in me.get_ships()]))
-    logging.info("Positions ocupied in the next turn:\n{}".format(["{}-({},{})".format(id, pos.x, pos.y) for id, pos in unpassable.items()]))
-    # Print elapsed time
     elapsed_time = process_time() - t
-    # logging.info("Loop Elapsed Time: {}".format(elapsed_time))
+    logging.info("Loop Elapsed Time: {}".format(elapsed_time))
 
     game.end_turn(command_queue)
