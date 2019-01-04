@@ -129,15 +129,19 @@ def next_target(ship, hal, current_targets):
 d = lambda posx, posy: abs(posx.x - posy.x) + abs(posx.y - posy.y)
 def order_ships(ship, game_map):
     if ship.status == "extracting":
-        return 0
+        # Order ships by halite in cargo
+        # The ones with more cargo move latter 
+        # This will help avoiding crashes
+        return ship.halite_amount
+
     elif not ship.status:
-        return 10
+        return 1001
     elif (ship.status == "moving"  or ship.status == "returning") :
         # Organize by distance to target
         # This will ensure that ships will not ocupy the targets of other ships as they move there
 
         # First, the ships that cannot move
         if ship.halite_amount < round(0.1 * game_map[ship.position].halite_amount):
-            return 2
+            return 1002
         else:
-            return 3 + d(ship.position, ship.target)
+            return 10001 + d(ship.position, ship.target)
