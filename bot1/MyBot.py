@@ -56,8 +56,7 @@ while True:
     game_map = game.game_map
 
     # NDarray with the amount of halite in each cell
-    halite_amount = np.array([[c.halite_amount for c in row] for row in game.game_map._cells])
-    # np.save("test-zone/hm.npy", halite_amount)
+    hal = np.array([[c.halite_amount for c in row] for row in game.game_map._cells])
 
     # A command queue holds all the commands you will run this turn. You build this list up and submit it at the
     #   end of the turn.
@@ -70,7 +69,86 @@ while True:
     # Loggins info ships order
     logging.info("{}".format([(ship.id, ship.status) for ship in ships]))
 
+    # Cycle through each ship
     for ship in ships:
+
+        # Ship is moving for extraction
+        if ship.status == "moving":
+            # Check if the ship reached the target
+            if ship.position == ship.target:
+                ship.status="extracting"
+
+            # Move to target
+            else: 
+                direction, unpassable = pathfind(ship, hal, unpassable)
+                command_queue.append(ship.move(direction))
+
+        # Ship is extracting
+        if ship.status == "extracting":
+            # The ship is full
+            if ship.is_full:
+                logging.info("Ship {} returning to base".format(ship.id))
+                ship.target = me.shipyard.position
+                ship.status = "returning"
+
+            # The cell will be bellow the treshold on the next turn
+            # and the ship is not full
+            elif (0.75 * game_map[ship.position].halite_amount < htresh and 
+                  not ship.is_full
+            ):
+                # Aquire next target
+                ship.status = None
+                command_queue.append(ship.stay_still())
+                unpassable[ship.id] = ship.position
+
+            # Check if the ship will be full on the next turn
+            elif (0.25 * game_map[ship.position].halite_amount + ship.halite_amount >= 999
+            ):
+                # Aquire next target
+                logging.info("Ship {} returning to base on the next turn".format(ship.id))
+                ship.target = me.shipyard.position
+                ship.status = "returning"
+                command_queue.append(ship.stay_still())
+                unpassable[ship.id] = ship.position
+
+            # Ship will continue extracting
+            elif (game_map[ship.position].halite_amount >= htresh and 
+                  not ship.is_full
+            ):
+                command_queue.append(ship.stay_still())
+                unpassable[ship.id] = ship.position
+
+        # Ship is returning to base
+        if (ship.status == "returning" and
+        ship.id not in [int(a.split()[1]) for a in command_queue]):
+            # Check if ship is in the shipyard
+            if ship.position == me.shipyard.position:
+                # Means it will acquire a new objective and move in that direction
+                ship.status = None
+
+            # Move to target
+            else: 
+                direction, unpassable = pathfind(ship, hal.copy(), unpassable)
+                command_queue.append(ship.move(direction))
+
+        # Aquire new target and move in that direction
+        if not ship.status:
+            # Assign target to ship
+            current_targets = next_target(ship, hal.copy(), current_targets)
+
+            logging.info("Ship {} assigned to {}.".format(ship.id, (ship.target.x, ship.target.y)))
+
+            # Change ship status to moving
+            ship.status = "moving"
+
+            # Check if the ship has nothing to do yet
+            if ship.id not in [int(a.split()[1]) for a in command_queue]:
+
+                # Get the direction to the target
+                td, unpassable = pathfind(ship, hal.copy(), unpassable)
+
+                # Move in that direction
+                command_queue.append(ship.move(td))
 
 
     # Conditions for spawning new ships
@@ -90,8 +168,11 @@ while True:
     logging.info("Positions ocupied in the next turn:\n{}".format(
         ["{}:{}".format(id, pos) for id, pos in unpassable.items()]))
 
+    # Log command queue
+    logging.info("Command Queue:\n{}".format(command_queue))
+
     # Log in elapsed_time
     elapsed_time = process_time() - t
-    logging.info("Loop Elapsed Time: {}".format(elapsed_time))
+    # logging.info("Loop Elapsed Time: {}".format(elapsed_time))
 
     game.end_turn(command_queue)

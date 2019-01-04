@@ -15,7 +15,7 @@ from math import sqrt, trunc
 
 ''' Custom Variables '''
 # Maximum number of ships
-max_n_ships = 10
+max_n_ships = 20
 
 # Threshold for a square to be consideres empty
 htresh = 40
@@ -30,14 +30,17 @@ h = lambda end, start: 500*sqrt(abs(start[0] - end[0])**2 + abs(start[1] - end[1
 # val = lambda start, target, m: m[start] + h(target, start)
 def val(start, target, m): return m[start] + h(target, start)
 
-def pathfind(ship, target: Position, m, unpassable: list):
+def pathfind(ship, m, unpassable: list):
     ''' 
     Determines the best route to target using astar.
     Start and target are Position objects
     '''
 
-    # Get the ship object
+    # Get the ship position
     start = ship.position
+
+    # Get the target
+    target = ship.target
 
     # Start position coord tupple
     sx, sy = start.x, start.y
@@ -76,10 +79,14 @@ def pathfind(ship, target: Position, m, unpassable: list):
     d_tuple = (adj[1]-sx, adj[0]-sy)
     # logging.info("{}".format(d_tuple))
 
-    # need to normalize the tuple in case of something line (0, -31)
+    # DEBUG
+    if ship.id == 9:
+        logging.info(d_tuple)
+
+    # need to normalize the tuple in case of something like (0, -31)
     # Probably not the most efficient way of doing this
     if max([abs(a) for a in d_tuple]) == 31:
-        d_tuple = tuple([int(a/31) for a in d_tuple])
+        d_tuple = tuple([int(a/-31) for a in d_tuple])
 
     direction = Direction.convert(d_tuple)
 
@@ -132,8 +139,7 @@ def order_ships(ship, game_map):
         # Order ships by halite in cargo
         # The ones with more cargo move latter 
         # This will help avoiding crashes
-        return ship.halite_amount
-
+        return (game_map[ship.position].halite_amount)
     elif not ship.status:
         return 1001
     elif (ship.status == "moving"  or ship.status == "returning") :
@@ -144,4 +150,4 @@ def order_ships(ship, game_map):
         if ship.halite_amount < round(0.1 * game_map[ship.position].halite_amount):
             return 1002
         else:
-            return 10001 + d(ship.position, ship.target)
+            return 1003 + d(ship.position, ship.target)
