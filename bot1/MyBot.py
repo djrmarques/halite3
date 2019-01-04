@@ -69,6 +69,12 @@ while True:
     # Loggins info ships order
     logging.info("{}".format([(ship.id, ship.status) for ship in ships]))
 
+    # Current Ship targets
+    current_targets = [ship.target for ship in me.get_ships() if ship.target]
+
+    # Calculates the number of shiips
+    max_n_ships = get_number_ships(hal.copy(),  htresh)
+
     # Cycle through each ship
     for ship in ships:
 
@@ -150,7 +156,6 @@ while True:
                 # Move in that direction
                 command_queue.append(ship.move(td))
 
-
     # Conditions for spawning new ships
     if (me.halite_amount >= constants.SHIP_COST and # If there is enough halite for a new ship
         len(me.get_ships()) < max_n_ships and  # Maximum Number of ships
@@ -161,18 +166,18 @@ while True:
         command_queue.append(me.shipyard.spawn())
 
     # Log Ship Targets
-    logging.info("Ship Targets:\n{}".format(
-        ["{}:{}".format(ship.id, ship.target) for ship in me.get_ships()]))
+    # logging.info("Ship Targets:\n{}".format(
+    #     ["{}:{}".format(ship.id, ship.target) for ship in me.get_ships()]))
 
     # Log Ship Positions at the end of the turn
-    logging.info("Positions ocupied in the next turn:\n{}".format(
-        ["{}:{}".format(id, pos) for id, pos in unpassable.items()]))
+    # logging.info("Positions ocupied in the next turn:\n{}".format(
+    #     ["{}:{}".format(id, pos) for id, pos in unpassable.items()]))
 
     # Log command queue
-    logging.info("Command Queue:\n{}".format(command_queue))
+    # logging.info("Command Queue:\n{}".format(command_queue))
 
     # Log in elapsed_time
     elapsed_time = process_time() - t
-    # logging.info("Loop Elapsed Time: {}".format(elapsed_time))
+    logging.info("Loop Elapsed Time: {}".format(elapsed_time))
 
     game.end_turn(command_queue)
