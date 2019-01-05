@@ -13,7 +13,7 @@ subprocess.run(["rm replays/*"], shell=True)
 # Several Parameters to test
 size = [32, 48, 56]
 n_players = [2, 3, 4]
-seeds = randint(1, 50000, 2).tolist()
+seeds = randint(1, 50000, 5).tolist()
 
 # Create all the combinations
 # Pandas that stores the end results

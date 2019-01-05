@@ -18,7 +18,7 @@ from math import sqrt, trunc
 max_n_ships = 20
 
 # Threshold for a square to be consideres empty
-htresh = 100
+htresh = 50
 
 # Stores the selected targets
 current_targets = []
