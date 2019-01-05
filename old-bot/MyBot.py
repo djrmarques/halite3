@@ -56,8 +56,7 @@ while True:
     game_map = game.game_map
 
     # NDarray with the amount of halite in each cell
-    halite_amount = np.array([[c.halite_amount for c in row] for row in game.game_map._cells])
-    # np.save("test-zone/hm.npy", halite_amount)
+    hal = np.array([[c.halite_amount for c in row] for row in game.game_map._cells])
 
     # A command queue holds all the commands you will run this turn. You build this list up and submit it at the
     #   end of the turn.
@@ -65,135 +64,97 @@ while True:
 
     # Organize ship is such as the thips that a currenyly extracting are first
     # This will help prevent crashes 
-    
     ships = sorted(me.get_ships(), key= lambda ship: order_ships(ship, game_map))
 
     # Loggins info ships order
     logging.info("{}".format([(ship.id, ship.status) for ship in ships]))
 
+    # Current Ship targets
+    current_targets = [ship.target for ship in me.get_ships() if ship.target]
+
+    # Calculates the number of shiips
+    max_n_ships = get_number_ships(hal.copy(),  htresh)
+
+    # Cycle through each ship
     for ship in ships:
 
-        # If the ship was just created
-        if not ship.status:
+        # Ship is moving for extraction
+        if ship.status == "moving":
+            # Check if the ship reached the target
+            if ship.position == ship.target:
+                ship.status="extracting"
 
+            # Move to target
+            else: 
+                direction, unpassable = pathfind(ship, hal, unpassable)
+                command_queue.append(ship.move(direction))
+
+        # Ship is extracting
+        if ship.status == "extracting":
+            # The ship is full
+            if ship.is_full:
+                logging.info("Ship {} returning to base".format(ship.id))
+                ship.target = me.shipyard.position
+                ship.status = "returning"
+
+            # The cell will be bellow the treshold on the next turn
+            # and the ship is not full
+            elif (0.75 * game_map[ship.position].halite_amount < htresh and 
+                  not ship.is_full
+            ):
+                # Aquire next target
+                ship.status = None
+                command_queue.append(ship.stay_still())
+                unpassable[ship.id] = ship.position
+
+            # Check if the ship will be full on the next turn
+            elif (0.25 * game_map[ship.position].halite_amount + ship.halite_amount >= 999
+            ):
+                # Aquire next target
+                logging.info("Ship {} returning to base on the next turn".format(ship.id))
+                ship.target = me.shipyard.position
+                ship.status = "returning"
+                command_queue.append(ship.stay_still())
+                unpassable[ship.id] = ship.position
+
+            # Ship will continue extracting
+            elif (game_map[ship.position].halite_amount >= htresh and 
+                  not ship.is_full
+            ):
+                command_queue.append(ship.stay_still())
+                unpassable[ship.id] = ship.position
+
+        # Ship is returning to base
+        if (ship.status == "returning" and
+        ship.id not in [int(a.split()[1]) for a in command_queue]):
+            # Check if ship is in the shipyard
+            if ship.position == me.shipyard.position:
+                # Means it will acquire a new objective and move in that direction
+                ship.status = None
+
+            # Move to target
+            else: 
+                direction, unpassable = pathfind(ship, hal.copy(), unpassable)
+                command_queue.append(ship.move(direction))
+
+        # Aquire new target and move in that direction
+        if not ship.status:
             # Assign target to ship
-            current_targets = next_target(ship, halite_amount.copy(), current_targets)
+            current_targets = next_target(ship, hal.copy(), current_targets)
 
             logging.info("Ship {} assigned to {}.".format(ship.id, (ship.target.x, ship.target.y)))
 
-            # Get the direction to the target
-            td, unpassable = pathfind(ship, ship.target, halite_amount.copy(), unpassable)
-
-            # Move in that direction
-            command_queue.append(ship.move(td))
-
             # Change ship status to moving
             ship.status = "moving"
-        
-        # If ship is moving
-        elif ship.status == "moving":
 
-            # Check if ship is already in target
-            if (ship.position == ship.target):
-                # Ship on target, start mining
-
-                # Change ship status to extracting
-                ship.status = "extracting"
-
-                # Move in that direction
-                command_queue.append(ship.stay_still())
-
-                logging.info("Ship {} reached extraction point at {}.".format(ship.id, (ship.target.x, ship.target.y)))
-
-                # Append ship to this position
-                unpassable[ship.id]=ship.position
-
-            # If it's not already in the position, go there
-            else:
-                # Get the direction to the target
-                td, unpassable = pathfind(ship, ship.target, halite_amount.copy(), unpassable)
-
-                # Move in that direction
-                command_queue.append(ship.move(td))
-
-        # If ship is extracting at the target
-        # The second condition is unnecessary
-        elif (ship.status == "extracting" and
-              ship.position == ship.target
-        ):
-
-            # If the spot halite amount is under the treshold or
-            # the ship is not full, find new target
-            if (game_map[ship.position].halite_amount < htresh and
-                not ship.is_full
-            ):
-                # Get new target
-                # Assign new target to ship
-                current_targets = next_target(ship, halite_amount.copy(), current_targets)
+            # Check if the ship has nothing to do yet
+            if ship.id not in [int(a.split()[1]) for a in command_queue]:
 
                 # Get the direction to the target
-                td, unpassablet = pathfind(ship, ship.target, halite_amount.copy(), unpassable)
+                td, unpassable = pathfind(ship, hal.copy(), unpassable)
 
                 # Move in that direction
                 command_queue.append(ship.move(td))
-
-                # Change ship status to moving
-                ship.status = "moving"
-                
-                logging.info("Ship {} assigned to {}.".format(ship.id, (ship.target.x, ship.target.y)))
-
-            # If the ship is full, return to base
-            elif (ship.is_full):
-                # Change ship status to returning
-                ship.status = "returning"
-
-                # Change target
-                ship.target = me.shipyard.position
-                logging.info("Ship {} returning to base.".format(ship.id))
-
-            elif (game_map[ship.position].halite_amount >= htresh):
-
-                # Check if it will leave in the next turn
-                if (0.75 * game_map[ship.position].halite_amount < htresh):
-                    # Change ship status to moving
-                    ship.status = None
-
-                # Continue mining
-                command_queue.append(ship.stay_still())
-
-                # Append ship to this position
-                unpassable[ship.id]=(ship.position)
-
-            else:
-                raise Exception("Unknown condition in with ship {}".format(ship.id))
-
-        # If the ship is returning
-        if (ship.status == "returning"):
-
-            # If the ship is not yet in the shipyard
-            if ship.position != ship.target:
-                # Get the direction to the shipyward
-                td, unpassable = pathfind(ship, ship.target, halite_amount.copy(), unpassable)
-
-                # Move in to shipyard
-                command_queue.append(ship.move(td))
-
-            # If ship already in the shipyard
-            elif ship.position == ship.target:
-
-                # Assign target to ship
-                current_targets = next_target(ship, halite_amount.copy(), current_targets)
-
-                # Get the direction to the target
-                td, unpassable = pathfind(ship, ship.target, halite_amount.copy(), unpassable)
-
-                # Move in that direction
-                command_queue.append(ship.move(td))
-
-                # Change ship status to moving
-                ship.status = "moving"
-
-                logging.info("Ship {} assigned to {}.".format(ship.id, (ship.target.x, ship.target.y)))
 
     # Conditions for spawning new ships
     if (me.halite_amount >= constants.SHIP_COST and # If there is enough halite for a new ship
@@ -205,12 +166,15 @@ while True:
         command_queue.append(me.shipyard.spawn())
 
     # Log Ship Targets
-    logging.info("Ship Targets:\n{}".format(
-        ["{}:{}".format(ship.id, ship.target) for ship in me.get_ships()]))
+    # logging.info("Ship Targets:\n{}".format(
+    #     ["{}:{}".format(ship.id, ship.target) for ship in me.get_ships()]))
 
     # Log Ship Positions at the end of the turn
-    logging.info("Positions ocupied in the next turn:\n{}".format(
-        ["{}:{}".format(id, pos) for id, pos in unpassable.items()]))
+    # logging.info("Positions ocupied in the next turn:\n{}".format(
+    #     ["{}:{}".format(id, pos) for id, pos in unpassable.items()]))
+
+    # Log command queue
+    # logging.info("Command Queue:\n{}".format(command_queue))
 
     # Log in elapsed_time
     elapsed_time = process_time() - t

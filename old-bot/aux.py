@@ -15,7 +15,7 @@ from math import sqrt, trunc
 
 ''' Custom Variables '''
 # Maximum number of ships
-max_n_ships = 10
+max_n_ships = 20
 
 # Threshold for a square to be consideres empty
 htresh = 40
@@ -26,18 +26,23 @@ current_targets = []
 ''' Custom Functions '''
 # Lambda functions for value
 # Heuristc
-h = lambda end, start: 500*sqrt(abs(start[0] - end[0])**2 + abs(start[1] - end[1])**2)
+h = lambda end, start: 3000*sqrt(abs(start[0] - end[0])**2 + abs(start[1] - end[1])**2)
 # val = lambda start, target, m: m[start] + h(target, start)
 def val(start, target, m): return m[start] + h(target, start)
 
-def pathfind(ship, target: Position, m, unpassable: list):
+def pathfind(ship, m, unpassable: list):
     ''' 
     Determines the best route to target using astar.
     Start and target are Position objects
     '''
 
-    # Get the ship object
+    size = m.shape[0]
+
+    # Get the ship position
     start = ship.position
+
+    # Get the target
+    target = ship.target
 
     # Start position coord tupple
     sx, sy = start.x, start.y
@@ -76,10 +81,10 @@ def pathfind(ship, target: Position, m, unpassable: list):
     d_tuple = (adj[1]-sx, adj[0]-sy)
     # logging.info("{}".format(d_tuple))
 
-    # need to normalize the tuple in case of something line (0, -31)
+    # need to normalize the tuple in case of something like (0, -31)
     # Probably not the most efficient way of doing this
-    if max([abs(a) for a in d_tuple]) == 31:
-        d_tuple = tuple([int(a/31) for a in d_tuple])
+    if max([abs(a) for a in d_tuple]) == size-1:
+        d_tuple = tuple([int(a/-(size-1)) for a in d_tuple])
 
     direction = Direction.convert(d_tuple)
 
@@ -129,15 +134,29 @@ def next_target(ship, hal, current_targets):
 d = lambda posx, posy: abs(posx.x - posy.x) + abs(posx.y - posy.y)
 def order_ships(ship, game_map):
     if ship.status == "extracting":
-        return 0
+        # Order ships by halite in cargo
+        # The ones with more cargo move latter 
+        # This will help avoiding crashes
+        return (game_map[ship.position].halite_amount)
     elif not ship.status:
-        return 10
+        return 1001
     elif (ship.status == "moving"  or ship.status == "returning") :
         # Organize by distance to target
         # This will ensure that ships will not ocupy the targets of other ships as they move there
 
         # First, the ships that cannot move
         if ship.halite_amount < round(0.1 * game_map[ship.position].halite_amount):
-            return 2
+            return 1002
         else:
-            return 3 + d(ship.position, ship.target)
+            return 1003 + d(ship.position, ship.target)
+
+def get_number_ships(hal, htresh):
+    ''' Determines the maximum number of ships '''
+
+    # All the tiles with hal < htresh have value 0
+    hal[hal < htresh] = 0
+
+    max_hal_map = hal.sum()
+    # logging.info("max_hal: {} max_ships: {}".format(max_hal_map, max_hal_map/1000))
+
+    return max_hal_map/1000

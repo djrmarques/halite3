@@ -18,7 +18,7 @@ from math import sqrt, trunc
 max_n_ships = 20
 
 # Threshold for a square to be consideres empty
-htresh = 40
+htresh = 100
 
 # Stores the selected targets
 current_targets = []
@@ -150,13 +150,13 @@ def order_ships(ship, game_map):
         else:
             return 1003 + d(ship.position, ship.target)
 
-def get_number_ships(hal, htresh):
+def get_number_ships(hal, htresh, n_players):
     ''' Determines the maximum number of ships '''
 
     # All the tiles with hal < htresh have value 0
     hal[hal < htresh] = 0
 
     max_hal_map = hal.sum()
-    # logging.info("max_hal: {} max_ships: {}".format(max_hal_map, max_hal_map/1000))
+    logging.info("max_hal: {} max_ships: {}".format(max_hal_map, max_hal_map/1000))
 
-    return max_hal_map/1000
+    return max_hal_map/(1000 * (n_players - 1))

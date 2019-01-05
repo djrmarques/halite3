@@ -72,8 +72,12 @@ while True:
     # Current Ship targets
     current_targets = [ship.target for ship in me.get_ships() if ship.target]
 
+    # Number of players in the metach
+    n_players = len(game.players)
+
     # Calculates the number of shiips
-    max_n_ships = get_number_ships(hal.copy(),  htresh)
+    max_n_ships = get_number_ships(hal.copy(),  htresh, n_players)
+
 
     # Cycle through each ship
     for ship in ships:
