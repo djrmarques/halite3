@@ -130,8 +130,9 @@ while True:
                 command_queue.append(ship.stay_still())
                 unpassable[ship.id] = ship.position
 
-            # Check if the ship will be full on the next turn
-            elif (0.25 * game_map[ship.position].halite_amount + ship.halite_amount >= 999
+            # Check if the ship will be full on the next turn if it is not inspired
+            elif (0.25 * game_map[ship.position].halite_amount + ship.halite_amount >= 999 and
+                  not ship.is_inspired
             ):
                 # Aquire next target
                 logging.info("Ship {} returning to base on the next turn".format(ship.id))
@@ -139,6 +140,18 @@ while True:
                 ship.status = "returning"
                 command_queue.append(ship.stay_still())
                 unpassable[ship.id] = ship.position
+
+            # Check if the ship will be full on the next turn if is inspired
+            elif (3*(0.25 * game_map[ship.position].halite_amount) + ship.halite_amount >= 999 and
+                  ship.is_inspired
+            ):
+                # Aquire next target
+                logging.info("Ship {} returning to base on the next turn".format(ship.id))
+                ship.target = me.shipyard.position
+                ship.status = "returning"
+                command_queue.append(ship.stay_still())
+                unpassable[ship.id] = ship.position
+
 
             # Ship will continue extracting
             elif (game_map[ship.position].halite_amount >= htresh and 
