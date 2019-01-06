@@ -12,8 +12,8 @@ subprocess.run(["rm replays/*"], shell=True)
 
 # Several Parameters to test
 size = [32, 48, 56]
-n_players = [2, 3, 4]
-seeds = randint(1, 50000, 5).tolist()
+n_players = [2, 4]
+seeds = randint(1, 50000, 10).tolist()
 
 # Create all the combinations
 # Pandas that stores the end results
@@ -29,9 +29,7 @@ for seed, size, n_players in product(seeds, size, n_players):
     print("Seed: {}\nSize: {}\nNPlayers: {}\n".format(seed, size, n_players))
     counter += 1
 
-    players = {1: "'python3 bot1/MyBot.py' 'python3 old-bot/MyBot.py'",
-               2: "'python3 bot1/MyBot.py' 'python3 old-bot/MyBot.py'",
-               3: "'python3 bot1/MyBot.py' 'python3 old-bot/MyBot.py' 'python3 old-bot/MyBot.py'",
+    players = {2: "'python3 bot1/MyBot.py' 'python3 old-bot/MyBot.py'",
                4: "'python3 bot1/MyBot.py' 'python3 old-bot/MyBot.py' 'python3 old-bot/MyBot.py' 'python3 old-bot/MyBot.py'"}
 
     # The result is in the stderr

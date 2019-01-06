@@ -18,12 +18,17 @@ from math import sqrt, trunc
 max_n_ships = 20
 
 # Threshold for a square to be consideres empty
-htresh = 50
+htresh = 40
 
 # Stores the selected targets
 current_targets = []
 
+# Increment this variable every turn 
+# There is a way of getting this from the game but wtv
+turn = 1
+
 ''' Custom Functions '''
+# NAVIGATION
 # Lambda functions for value
 # Heuristc
 h = lambda end, start: 3000*sqrt(abs(start[0] - end[0])**2 + abs(start[1] - end[1])**2)
@@ -129,7 +134,7 @@ def next_target(ship, hal, current_targets):
     return  current_targets
 
 
-# Ship move order functions
+# MOVE ORDER OF SHIPS IN A TURN 
 # Returns the mathantan distance of two positions
 d = lambda posx, posy: abs(posx.x - posy.x) + abs(posx.y - posy.y)
 def order_ships(ship, game_map):
@@ -159,4 +164,47 @@ def get_number_ships(hal, htresh, n_players):
     max_hal_map = hal.sum()
     logging.info("max_hal: {} max_ships: {}".format(max_hal_map, max_hal_map/1000))
 
-    return max_hal_map/(1000 * (n_players - 1))
+    return int(max_hal_map/(1000*n_players))
+
+
+# INSPIRATON
+def get_inspired(game, me):
+    ''' Determined if a ship is inspired in the current position. Return Bool'''
+
+    # Get all the enemy ships positions
+    players_list = [player for id, player in game.players.items() if id != me.id]
+
+    # Enemy Ship positions
+    enemy_ships = []
+
+    # Cycle through the players IDs
+    for player in players_list:
+        # Get all ship positions
+        enemy_ships += [ship.position for ship in player.get_ships()]
+
+
+    # Get all the positions within a radious of 4 from all the ships
+    radious = 4
+
+    # Stores all the positions from a radious of the enemy ships
+    possible_positions = []
+
+    # Stores inspired positions
+    inspired_positions = []
+
+    # Cycle through the positions of enemy ships
+    for position in enemy_ships:
+        x = position.x
+        y = position.y
+
+        for dx in np.arange(-radious, radious+1):
+            for dy in np.arange(-radious, radious+1):
+                nx = x+dx
+                ny = y+dy
+
+                if Position(nx, ny) in possible_positions:
+                    inspired_positions.append(Position(nx, ny))
+                else:
+                    possible_positions.append(Position(nx, ny))
+
+    return inspired_positions

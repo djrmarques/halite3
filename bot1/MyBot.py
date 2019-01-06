@@ -78,9 +78,27 @@ while True:
     # Calculates the number of shiips
     max_n_ships = get_number_ships(hal.copy(),  htresh, n_players)
 
+    # Get the number of turns until the end
+    n_turns = constants.MAX_TURNS - turn
+
+    # Get the inpired position for the current turn
+    inspired_positions = get_inspired(game, me)
 
     # Cycle through each ship
     for ship in ships:
+
+        # Check if ship is inspired
+        if ship.position in inspired_positions:
+            logging.info("Ship {}, on {} is inspired".format(ship.id, ship.position))
+            ship.is_inspired = True
+        else:
+            ship.is_inspired = False
+
+        # Check if ship will crash at the base
+        if 1.6*d(ship.position, me.shipyard.position) >= (n_turns):
+            ship.end = True
+            ship.status = "returning"
+            ship.target = me.shipyard.position
 
         # Ship is moving for extraction
         if ship.status == "moving":
@@ -103,6 +121,7 @@ while True:
 
             # The cell will be bellow the treshold on the next turn
             # and the ship is not full
+            # Check if ship is inspired
             elif (0.75 * game_map[ship.position].halite_amount < htresh and 
                   not ship.is_full
             ):
@@ -132,9 +151,13 @@ while True:
         if (ship.status == "returning" and
         ship.id not in [int(a.split()[1]) for a in command_queue]):
             # Check if ship is in the shipyard
-            if ship.position == me.shipyard.position:
+            if ship.position == me.shipyard.position and not ship.end:
                 # Means it will acquire a new objective and move in that direction
                 ship.status = None
+
+            # Ship will stay in the base
+            elif ship.position == me.shipyard.position and ship.end:
+                command_queue.append(ship.stay_still())
 
             # Move to target
             else: 
@@ -184,4 +207,6 @@ while True:
     elapsed_time = process_time() - t
     logging.info("Loop Elapsed Time: {}".format(elapsed_time))
 
+    # Increment the turn variable
+    turn += 1
     game.end_turn(command_queue)

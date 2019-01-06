@@ -70,6 +70,13 @@ class Ship(Entity):
         # Moving, Extracting, Returning
         self.status = None
 
+        # Turns to shipyard
+        # If True, ship crashes in the shipyard
+        self.end = False
+
+        # Yes if the ship is inspired
+        self.is_inspired = False
+
     @property
     def is_full(self):
         """Is this ship at max halite capacity?"""
