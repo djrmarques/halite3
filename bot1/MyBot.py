@@ -81,21 +81,24 @@ while True:
     # Get the number of turns until the end
     n_turns = constants.MAX_TURNS - turn
 
-    # Get the inpired position for the current turn
-    inspired_positions = get_inspired(game, me)
+    # Check if a ship is inpired or not
+    # Get all the enemy ships positions
+    players_list = [player for id, player in game.players.items() if id != me.id]
+    # Enemy Ship positions
+    enemy_ships = []
+    # Cycle through the players IDs
+    for player in players_list:
+        # Get all ship positions, tuple (x, y)
+        enemy_ships += [(ship.position.x, ship.position.y) for ship in player.get_ships()]
 
     # Cycle through each ship
     for ship in ships:
 
         # Check if ship is inspired
-        if ship.position in inspired_positions:
-            logging.info("Ship {}, on {} is inspired".format(ship.id, ship.position))
-            ship.is_inspired = True
-        else:
-            ship.is_inspired = False
+        is_inspired(ship, enemy_ships)
 
         # Check if ship will crash at the base
-        if 1.6*d(ship.position, me.shipyard.position) >= (n_turns):
+        if 1.1*game_map.calculate_distance(ship.position, me.shipyard.position) >= (n_turns):
             ship.end = True
             ship.status = "returning"
             ship.target = me.shipyard.position
@@ -180,7 +183,7 @@ while True:
         # Aquire new target and move in that direction
         if not ship.status:
             # Assign target to ship
-            current_targets = next_target(ship, hal.copy(), current_targets)
+            current_targets = next_target(ship, hal.copy(), current_targets, game_map)
 
             logging.info("Ship {} assigned to {}.".format(ship.id, (ship.target.x, ship.target.y)))
 
@@ -206,15 +209,15 @@ while True:
         command_queue.append(me.shipyard.spawn())
 
     # Log Ship Targets
-    # logging.info("Ship Targets:\n{}".format(
-    #     ["{}:{}".format(ship.id, ship.target) for ship in me.get_ships()]))
+    logging.info("Ship Targets:\n{}".format(
+        ["{}:{}".format(ship.id, ship.target) for ship in me.get_ships()]))
 
     # Log Ship Positions at the end of the turn
-    # logging.info("Positions ocupied in the next turn:\n{}".format(
-    #     ["{}:{}".format(id, pos) for id, pos in unpassable.items()]))
+    logging.info("Positions ocupied in the next turn:\n{}".format(
+        ["{}:{}".format(id, pos) for id, pos in unpassable.items()]))
 
     # Log command queue
-    # logging.info("Command Queue:\n{}".format(command_queue))
+    logging.info("Command Queue:\n{}".format(command_queue))
 
     # Log in elapsed_time
     elapsed_time = process_time() - t

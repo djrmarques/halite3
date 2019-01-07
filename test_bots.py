@@ -7,26 +7,32 @@ from numpy.random import randint
 import pandas as pd
 from itertools import product
 
+from time import process_time
+
 # Delete everything from the replay folder
 subprocess.run(["rm replays/*"], shell=True)
 
 # Several Parameters to test
-size = [32, 48, 56]
-n_players = [2, 4]
+size = [32, 56]
 seeds = randint(1, 50000, 10).tolist()
+
+n_players_dict = {32: 2, 56: 4}
 
 # Create all the combinations
 # Pandas that stores the end results
 res = pd.DataFrame(columns=["seed", "n_players", "size", "winner"])
 
-n = len(list(product(seeds, size, n_players)))
+n = len(list(product(seeds, size)))
 counter = 1
 
 # Number of tests entries
-for seed, size, n_players in product(seeds, size, n_players):
+total = process_time()
+for seed, size in product(seeds, size):
+    t = process_time()
+    n_players = n_players_dict[size]
     # Prints info
-    print("Trial {}/{}".format(counter, n))
-    print("Seed: {}\nSize: {}\nNPlayers: {}\n".format(seed, size, n_players))
+    print("\nTrial {}/{}".format(counter, n))
+    print("Seed: {}\nSize: {}\nNPlayers: {}".format(seed, size, n_players))
     counter += 1
 
     players = {2: "'python3 bot1/MyBot.py' 'python3 old-bot/MyBot.py'",
@@ -42,6 +48,7 @@ for seed, size, n_players in product(seeds, size, n_players):
                        stderr=subprocess.PIPE,
                        shell=True)
 
+    print("Game Time: ", process_time() - t)
     # Decode bytes
     out =  log.stderr.decode("utf-8")
 
@@ -57,4 +64,6 @@ for seed, size, n_players in product(seeds, size, n_players):
         # This is not necessary but wtv
         break
 
+
+print("\nTotal Time: ", process_time() - total)
 print(res["winner"].value_counts())
