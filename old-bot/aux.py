@@ -14,21 +14,40 @@ import logging
 from math import sqrt, trunc
 
 ''' Custom Variables '''
-# Maximum number of ships
-max_n_ships = 20
-
 # Threshold for a square to be consideres empty
 htresh = 40
 
 # Stores the selected targets
 current_targets = []
 
+# Increment this variable every turn 
+# There is a way of getting this from the game but wtv
+turn = 1
+
 ''' Custom Functions '''
+# NAVIGATION
 # Lambda functions for value
 # Heuristc
-h = lambda end, start: 3000*sqrt(abs(start[0] - end[0])**2 + abs(start[1] - end[1])**2)
-# val = lambda start, target, m: m[start] + h(target, start)
-def val(start, target, m): return m[start] + h(target, start)
+
+def h(end, start, size):
+    ''' Calculates the toroidal distance between coordinates '''
+
+    dx = abs(end[0] - start[0])
+    dy = abs(end[1] - start[1])
+
+    if (dx > 0.5*size):
+        dx = size-dx
+    if (dy > 0.5*size):
+        dy = size-dy
+
+    return 3000*(dx**2 + dy**2)
+
+# val = lambda start, target, m: m[start] + h(target, start, m.shape[0])
+
+def val(start, target, m):
+    # logging.info("Direction {}, map size {},  has a value of {} + {} = {}".format(start, m.shape, m[start], h(target, start, m.shape[0]),  m[start] + h(target, start, m.shape[0]))) 
+
+    return m[start] + h(target, start, m.shape[0])
 
 def pathfind(ship, m, unpassable: list):
     ''' 
@@ -75,8 +94,10 @@ def pathfind(ship, m, unpassable: list):
     # Get position as tupple
     adj = [(pos.y, pos.x) for pos in adj]
 
-    # DEBUG DELETE THIS
+    # Sort the positions based on val
     adj = sorted(adj, key=lambda c: val(c, (ty, tx), m))[0]
+
+    # Replace with the navigate function
     # Get the best direction
     d_tuple = (adj[1]-sx, adj[0]-sy)
     # logging.info("{}".format(d_tuple))
@@ -93,7 +114,7 @@ def pathfind(ship, m, unpassable: list):
 
     return direction, unpassable
 
-def next_target(ship, hal, current_targets):
+def next_target(ship, hal, current_targets, game_map):
     ''' Chooses the next target for the ship. Returns a Position'''
 
 
@@ -101,11 +122,13 @@ def next_target(ship, hal, current_targets):
     hal[hal < htresh] = 0
 
     # Get the cityblock distance matrix
-    d = cdist([a for a in np.ndindex(hal.shape)],
-              [[ship.position.y, ship.position.x]],
-              metric='cityblock').reshape(hal.shape)
+    d = np.zeros(hal.shape)
 
-    # Value for each cell
+    # But need to consider the toroidal
+    for index in np.ndindex(hal.shape):
+        d[index] = game_map.calculate_distance(ship.position, Position(index[1], index[0]))
+
+    # value for each cell
     val = np.divide(hal, np.square(d))
 
     # Target positions. the current targets contains Position objects
@@ -129,7 +152,7 @@ def next_target(ship, hal, current_targets):
     return  current_targets
 
 
-# Ship move order functions
+# MOVE ORDER OF SHIPS IN A TURN 
 # Returns the mathantan distance of two positions
 d = lambda posx, posy: abs(posx.x - posy.x) + abs(posx.y - posy.y)
 def order_ships(ship, game_map):
@@ -140,7 +163,9 @@ def order_ships(ship, game_map):
         return (game_map[ship.position].halite_amount)
     elif not ship.status:
         return 1001
-    elif (ship.status == "moving"  or ship.status == "returning") :
+    elif ship.status == "returning" :
+        return 2000 + (1000 - ship.halite_amount)
+    elif (ship.status == "moving") :
         # Organize by distance to target
         # This will ensure that ships will not ocupy the targets of other ships as they move there
 
@@ -148,15 +173,40 @@ def order_ships(ship, game_map):
         if ship.halite_amount < round(0.1 * game_map[ship.position].halite_amount):
             return 1002
         else:
-            return 1003 + d(ship.position, ship.target)
+            return 1003 + game_map.calculate_distance(ship.position, ship.target)
 
-def get_number_ships(hal, htresh):
+def get_number_ships(hal, htresh, n_players):
     ''' Determines the maximum number of ships '''
 
     # All the tiles with hal < htresh have value 0
     hal[hal < htresh] = 0
 
     max_hal_map = hal.sum()
-    # logging.info("max_hal: {} max_ships: {}".format(max_hal_map, max_hal_map/1000))
+    n_ships = int(max_hal_map/(1000*n_players))
+    logging.info("max_hal: {} max_ships: {}".format(max_hal_map, n_ships))
 
-    return max_hal_map/1000
+    return n_ships
+
+
+# INSPIRATON
+def is_inspired(ship, enemies_list):
+    ''' Determined if a ship is inspired in the current position. Return Bool'''
+
+    # Get all the positions within a radious of 4 from all the ships
+    radious = 4
+
+    ships_in_radious = 0
+
+    for dx in np.arange(-radious, radious+1):
+        for dy in np.arange(-radious, radious+1):
+            nx = ship.position.x+dx
+            ny = ship.position.y+dy
+
+            if (nx, ny) in enemies_list:
+                ships_in_radious += 1
+
+            if ships_in_radious > 2:
+                ship.is_inspired = True
+                return 0
+
+    ship.is_inspired = False

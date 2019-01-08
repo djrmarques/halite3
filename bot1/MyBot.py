@@ -98,10 +98,11 @@ while True:
         is_inspired(ship, enemy_ships)
 
         # Check if ship will crash at the base
-        if 1.1*game_map.calculate_distance(ship.position, me.shipyard.position) >= (n_turns):
-            ship.end = True
-            ship.status = "returning"
-            ship.target = me.shipyard.position
+        # Uncomment this after debu
+        # if 1.1*game_map.calculate_distance(ship.position, me.shipyard.position) >= (n_turns):
+        #     ship.end = True
+        #     ship.status = "returning"
+        #     ship.target = me.shipyard.position
 
         # Ship is moving for extraction
         if ship.status == "moving":

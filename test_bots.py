@@ -14,7 +14,7 @@ subprocess.run(["rm replays/*"], shell=True)
 
 # Several Parameters to test
 size = [32, 56]
-seeds = randint(1, 50000, 10).tolist()
+seeds = randint(1, 50000, 1).tolist()
 
 n_players_dict = {32: 2, 56: 4}
 
@@ -26,9 +26,8 @@ n = len(list(product(seeds, size)))
 counter = 1
 
 # Number of tests entries
-total = process_time()
 for seed, size in product(seeds, size):
-    t = process_time()
+
     n_players = n_players_dict[size]
     # Prints info
     print("\nTrial {}/{}".format(counter, n))
@@ -48,9 +47,13 @@ for seed, size in product(seeds, size):
                        stderr=subprocess.PIPE,
                        shell=True)
 
-    print("Game Time: ", process_time() - t)
     # Decode bytes
     out =  log.stderr.decode("utf-8")
+
+    # Print if there were any crashes
+    for p in re.findall(r".*\[P0\] owned entities.*", out):
+    # [warn] [172] [P2] owned entities 65, 25 collided on cell (22, 37) as the result of moves on this turn
+        print(p)
 
     for p in re.findall(r".*rank 1.*", out):
         # Get the name of the player
@@ -64,6 +67,4 @@ for seed, size in product(seeds, size):
         # This is not necessary but wtv
         break
 
-
-print("\nTotal Time: ", process_time() - total)
 print(res["winner"].value_counts())

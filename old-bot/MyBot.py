@@ -72,11 +72,36 @@ while True:
     # Current Ship targets
     current_targets = [ship.target for ship in me.get_ships() if ship.target]
 
+    # Number of players in the metach
+    n_players = len(game.players)
+
     # Calculates the number of shiips
-    max_n_ships = get_number_ships(hal.copy(),  htresh)
+    max_n_ships = get_number_ships(hal.copy(),  htresh, n_players)
+
+    # Get the number of turns until the end
+    n_turns = constants.MAX_TURNS - turn
+
+    # Check if a ship is inpired or not
+    # Get all the enemy ships positions
+    players_list = [player for id, player in game.players.items() if id != me.id]
+    # Enemy Ship positions
+    enemy_ships = []
+    # Cycle through the players IDs
+    for player in players_list:
+        # Get all ship positions, tuple (x, y)
+        enemy_ships += [(ship.position.x, ship.position.y) for ship in player.get_ships()]
 
     # Cycle through each ship
     for ship in ships:
+
+        # Check if ship is inspired
+        is_inspired(ship, enemy_ships)
+
+        # Check if ship will crash at the base
+        if 1.1*game_map.calculate_distance(ship.position, me.shipyard.position) >= (n_turns):
+            ship.end = True
+            ship.status = "returning"
+            ship.target = me.shipyard.position
 
         # Ship is moving for extraction
         if ship.status == "moving":
@@ -99,6 +124,7 @@ while True:
 
             # The cell will be bellow the treshold on the next turn
             # and the ship is not full
+            # Check if ship is inspired
             elif (0.75 * game_map[ship.position].halite_amount < htresh and 
                   not ship.is_full
             ):
@@ -107,8 +133,9 @@ while True:
                 command_queue.append(ship.stay_still())
                 unpassable[ship.id] = ship.position
 
-            # Check if the ship will be full on the next turn
-            elif (0.25 * game_map[ship.position].halite_amount + ship.halite_amount >= 999
+            # Check if the ship will be full on the next turn if it is not inspired
+            elif (0.25 * game_map[ship.position].halite_amount + ship.halite_amount >= 999 and
+                  not ship.is_inspired
             ):
                 # Aquire next target
                 logging.info("Ship {} returning to base on the next turn".format(ship.id))
@@ -116,6 +143,18 @@ while True:
                 ship.status = "returning"
                 command_queue.append(ship.stay_still())
                 unpassable[ship.id] = ship.position
+
+            # Check if the ship will be full on the next turn if is inspired
+            elif (3*(0.25 * game_map[ship.position].halite_amount) + ship.halite_amount >= 999 and
+                  ship.is_inspired
+            ):
+                # Aquire next target
+                logging.info("Ship {} returning to base on the next turn".format(ship.id))
+                ship.target = me.shipyard.position
+                ship.status = "returning"
+                command_queue.append(ship.stay_still())
+                unpassable[ship.id] = ship.position
+
 
             # Ship will continue extracting
             elif (game_map[ship.position].halite_amount >= htresh and 
@@ -128,9 +167,13 @@ while True:
         if (ship.status == "returning" and
         ship.id not in [int(a.split()[1]) for a in command_queue]):
             # Check if ship is in the shipyard
-            if ship.position == me.shipyard.position:
+            if ship.position == me.shipyard.position and not ship.end:
                 # Means it will acquire a new objective and move in that direction
                 ship.status = None
+
+            # Ship will stay in the base
+            elif ship.position == me.shipyard.position and ship.end:
+                command_queue.append(ship.stay_still())
 
             # Move to target
             else: 
@@ -140,7 +183,7 @@ while True:
         # Aquire new target and move in that direction
         if not ship.status:
             # Assign target to ship
-            current_targets = next_target(ship, hal.copy(), current_targets)
+            current_targets = next_target(ship, hal.copy(), current_targets, game_map)
 
             logging.info("Ship {} assigned to {}.".format(ship.id, (ship.target.x, ship.target.y)))
 
@@ -166,18 +209,20 @@ while True:
         command_queue.append(me.shipyard.spawn())
 
     # Log Ship Targets
-    # logging.info("Ship Targets:\n{}".format(
-    #     ["{}:{}".format(ship.id, ship.target) for ship in me.get_ships()]))
+    logging.info("Ship Targets:\n{}".format(
+        ["{}:{}".format(ship.id, ship.target) for ship in me.get_ships()]))
 
     # Log Ship Positions at the end of the turn
-    # logging.info("Positions ocupied in the next turn:\n{}".format(
-    #     ["{}:{}".format(id, pos) for id, pos in unpassable.items()]))
+    logging.info("Positions ocupied in the next turn:\n{}".format(
+        ["{}:{}".format(id, pos) for id, pos in unpassable.items()]))
 
     # Log command queue
-    # logging.info("Command Queue:\n{}".format(command_queue))
+    logging.info("Command Queue:\n{}".format(command_queue))
 
     # Log in elapsed_time
     elapsed_time = process_time() - t
     logging.info("Loop Elapsed Time: {}".format(elapsed_time))
 
+    # Increment the turn variable
+    turn += 1
     game.end_turn(command_queue)

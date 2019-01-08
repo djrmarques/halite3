@@ -128,6 +128,8 @@ def next_target(ship, hal, current_targets, game_map):
     for index in np.ndindex(hal.shape):
         d[index] = game_map.calculate_distance(ship.position, Position(index[1], index[0]))
 
+    # Remove the error
+    d[d==0] = 1000
     # value for each cell
     val = np.divide(hal, np.square(d))
 
