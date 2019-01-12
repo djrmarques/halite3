@@ -14,7 +14,7 @@ subprocess.run(["rm replays/*"], shell=True)
 
 # Several Parameters to test
 size = [32, 56]
-seeds = randint(1, 50000, 1).tolist()
+seeds = randint(1, 50000, 10).tolist()
 
 n_players_dict = {32: 2, 56: 4}
 

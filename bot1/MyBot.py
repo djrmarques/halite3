@@ -10,9 +10,6 @@ from hlt import constants
 # This library contains direction metadata to better interface with the game.
 from hlt.positionals import Direction, Position
 
-# This library allows you to generate random numbers.
-import random
-
 # Logging allows you to save messages for yourself. This is required because the regular STDOUT
 #   (print statements) are reserved for the engine-bot communication.
 import logging
@@ -44,12 +41,11 @@ while True:
     t = process_time()
 
     # Next positions
-    # This will store the next bot positions and will be used by pathfind 
-    # To select the next route and avoid crashes with my own ships
+    # Holds position a ship will be in the next turn
     unpassable = {}
 
     # This loop handles each turn of the game. The game object changes every turn, and you refresh that state by
-    #   running update_frame().
+    # running update_frame().
     game.update_frame()
     # You extract player metadata and the updated map metadata here for convenience.
     me = game.me
@@ -57,6 +53,8 @@ while True:
 
     # NDarray with the amount of halite in each cell
     hal = np.array([[c.halite_amount for c in row] for row in game.game_map._cells])
+    # Save hal
+    # np.save("test-zone/hal.npy", hal)
 
     # A command queue holds all the commands you will run this turn. You build this list up and submit it at the
     #   end of the turn.
@@ -77,6 +75,8 @@ while True:
 
     # Calculates the number of shiips
     max_n_ships = get_number_ships(hal.copy(),  htresh, n_players)
+    # Delete this afterwards
+    max_n_ships = 1
 
     # Get the number of turns until the end
     n_turns = constants.MAX_TURNS - turn
@@ -99,10 +99,10 @@ while True:
 
         # Check if ship will crash at the base
         # Uncomment this after debu
-        # if 1.1*game_map.calculate_distance(ship.position, me.shipyard.position) >= (n_turns):
-        #     ship.end = True
-        #     ship.status = "returning"
-        #     ship.target = me.shipyard.position
+        if 1.1*game_map.calculate_distance(ship.position, me.shipyard.position) >= (n_turns):
+            ship.end = True
+            ship.status = "returning"
+            ship.target = me.shipyard.position
 
         # Ship is moving for extraction
         if ship.status == "moving":
@@ -203,7 +203,6 @@ while True:
     # Conditions for spawning new ships
     if (me.halite_amount >= constants.SHIP_COST and # If there is enough halite for a new ship
         len(me.get_ships()) < max_n_ships and  # Maximum Number of ships
-        not game_map[me.shipyard].is_occupied and  # Shipyard not occupied
         me.shipyard.position not in [pos for pos in unpassable.values()]  # Shipyard not occupied
     ):
 

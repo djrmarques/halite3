@@ -164,7 +164,7 @@ def order_ships(ship, game_map):
         # This will help avoiding crashes
         return (game_map[ship.position].halite_amount)
     elif not ship.status:
-        return 1001
+        return 1003
     elif ship.status == "returning" :
         return 2000 + (1000 - ship.halite_amount)
     elif (ship.status == "moving") :
@@ -175,7 +175,7 @@ def order_ships(ship, game_map):
         if ship.halite_amount < round(0.1 * game_map[ship.position].halite_amount):
             return 1002
         else:
-            return 1003 + game_map.calculate_distance(ship.position, ship.target)
+            return 1004 + game_map.calculate_distance(ship.position, ship.target)
 
 def get_number_ships(hal, htresh, n_players):
     ''' Determines the maximum number of ships '''
