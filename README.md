@@ -1,5 +1,5 @@
 # Profile Link
-https://halite.io/user/?user_id=7987
+https://2018.halite.io/user/?user_id=7987
 
 # Files
 - bot1 is the main bot
